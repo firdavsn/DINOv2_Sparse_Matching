@@ -23,7 +23,7 @@ class Segmenter:
         device (str): The computing device used for model operations, e.g., 'cuda' or 'cpu'.
     """
     
-    def __init__(self, sam_checkpoint_path: str = None, model_type: str = None, model_size: str = "large", device: str = "cuda"):
+    def __init__(self, sam_checkpoint_path: str = None, model_type: str = None, model_size: str = "medium", device: str = "cuda"):
         """
         Initialize Segmenter model and any utils.
 
