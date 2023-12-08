@@ -124,7 +124,7 @@ class Segmenter:
         
         return img
     
-    def visualize(self, mask_overlay: np.ndarray, image: np.ndarray, figsize: tuple[int] = (10, 5)):
+    def visualize(self, mask_overlay: np.ndarray, image: np.ndarray, figsize: tuple[int] = (15, 5)):
         """
         Visualizes the mask. Overlays it on the image (if any).
 
@@ -137,6 +137,13 @@ class Segmenter:
         
         is_bw = len(mask_overlay.shape) == 2
         
+        # Display the original image
+        plt.figure(figsize=figsize)
+        plt.subplot(1, 3, 1)
+        plt.imshow(image)
+        plt.title('Original Image')
+        plt.axis('off')
+
         if is_bw:
             # Convert the mask to have 3 channels
             filter = np.stack([mask_overlay, mask_overlay, mask_overlay], axis=-1)
@@ -144,36 +151,34 @@ class Segmenter:
             # Apply the mask to the image
             masked_image = image * filter
 
-            # Display the original image and the masked image
-            plt.figure(figsize=figsize)
-            plt.subplot(1, 2, 1)
-            plt.imshow(image)
-            plt.title('Original Image')
-            plt.axis('off')
-
-            plt.subplot(1, 2, 2)
+            # Display the masked image
+            plt.subplot(1, 3, 2)
             plt.imshow(masked_image)
             plt.title('Masked Image')
             plt.axis('off')
 
-            plt.show()
-        else:
-            # Display the original image and the masked image
-            plt.figure(figsize=figsize)
-            plt.subplot(1, 2, 1)
-            plt.imshow(image)
-            plt.title('Original Image')
+            # Display the mask overlay
+            plt.subplot(1, 3, 3)
+            plt.imshow(mask_overlay, cmap="gray")
+            plt.title('Mask Overlay')
             plt.axis('off')
-            
-            plt.subplot(1, 2, 2)
+        else:
+            # Display the masked image
+            plt.subplot(1, 3, 2)
             plt.imshow(image)
             ax = plt.gca()
             ax.set_autoscale_on(False)
             ax.imshow(mask_overlay)
             plt.title('Masked Image')
             plt.axis('off')
-            
-            plt.show()
+        
+            # Display the mask overlay
+            plt.subplot(1, 3, 3)
+            plt.imshow(mask_overlay)
+            plt.title('Mask Overlay')
+            plt.axis('off')
+        
+        plt.show()
 
     def convert_bw(self, mask_overlay: np.ndarray) -> np.ndarray:
         """
