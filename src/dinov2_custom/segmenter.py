@@ -5,9 +5,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 from segment_anything import sam_model_registry, SamAutomaticMaskGenerator, SamPredictor
 
-CHECKPOINTS = {"large" : r"...\\sam_checkpoints\\sam_vit_h_4b8939.pth",
-               "medium": r"...\\sam_checkpoints\\sam_vit_l_0b3195.pth",
-               "small" : r"...\\sam_checkpoints\\sam_vit_b_01ec64.pth"}
+CHECKPOINTS = {"large" : r".../sam_checkpoints/sam_vit_h_4b8939.pth",
+               "medium": r".../sam_checkpoints/sam_vit_l_0b3195.pth",
+               "small" : r".../sam_checkpoints/sam_vit_b_01ec64.pth"}
 
 MODEL_TYPES = {"large" : "vit_h",
                "medium": "vit_l",
