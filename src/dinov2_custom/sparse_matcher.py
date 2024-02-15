@@ -1,6 +1,6 @@
 # src/dinov2_custom/sparse_matcher.py
 
-from dinov2 import DINOv2
+from .dinov2 import DINOv2
 
 from matplotlib.patches import ConnectionPatch
 import matplotlib.pyplot as plt

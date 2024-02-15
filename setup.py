@@ -24,5 +24,5 @@ setup(
         # torch and torchvision are handled separately due to URL-based installation
     ],
 
-    python_requires='>=3.6',
+    python_requires='>=3.8',
 )

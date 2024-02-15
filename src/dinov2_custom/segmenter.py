@@ -1,17 +1,21 @@
 # src/dinov2_custom/segmenter.py
 
-import cv2
 import matplotlib.pyplot as plt
 import numpy as np
-from segment_anything import sam_model_registry, SamAutomaticMaskGenerator, SamPredictor
+import mobile_sam
+import segment_anything
 
-CHECKPOINTS = {"large" : r".../sam_checkpoints/sam_vit_h_4b8939.pth",
-               "medium": r".../sam_checkpoints/sam_vit_l_0b3195.pth",
-               "small" : r".../sam_checkpoints/sam_vit_b_01ec64.pth"}
+import os
+
+CHECKPOINTS = {"large" : r"src/dinov2_custom/sam_checkpoints/sam_vit_h_4b8939.pth",
+               "medium": r"src/dinov2_custom/sam_checkpoints/sam_vit_l_0b3195.pth",
+               "small" : r"src/dinov2_custom/sam_checkpoints/sam_vit_b_01ec64.pth",
+               "mobile": r"src/dinov2_custom/sam_checkpoints/mobile_sam.pt"}
 
 MODEL_TYPES = {"large" : "vit_h",
                "medium": "vit_l",
-               "small" : "vit_b"}
+               "small" : "vit_b",
+               "mobile": 'vit_t'}
 
 class Segmenter:
     """
@@ -22,32 +26,41 @@ class Segmenter:
         mask_generator (SamAutomaticMaskGenerator): Utility for generating masks from the SAM model.
         device (str): The computing device used for model operations, e.g., 'cuda' or 'cpu'.
     """
-    
-    def __init__(self, sam_checkpoint_path: str = None, model_type: str = None, model_size: str = "medium", device: str = "cuda"):
+
+    def __init__(self, checkpoint_path: str = None, model_type: str = None, model_size: str = "mobile", device: str = "cuda"):
         """
         Initialize Segmenter model and any utils.
 
         Arguments:
-            sam_checkpoint_path (str, optional): Path to SAM checkpoint for model.
+            checkpoint_path (str, optional): Path to SAM checkpoint for model.
             model_type (str, optional): Type of model in SAM checkpoint.
-            model_size (str, "large"): Size of the model, options are 'large', 'medium', or 'small'.
+            model_size (str, "large"): Size of the model, options are 'large', 'medium', 'small', or 'mobile'.
             device (str, "cuda"): Device to run on; options are 'cuda' or 'cpu'.
         """
+        
         # Determine pretrained model checkpoint and model type
         checkpoint, model_type = None, model_type
-        if sam_checkpoint_path and model_type:
-            checkpoint = sam_checkpoint_path
+        if checkpoint_path and model_type:
+            checkpoint = checkpoint_path
         else:
             checkpoint = CHECKPOINTS[model_size]
             model_type = MODEL_TYPES[model_size]
+
+        # Determine if using SAM or MobileSAM
+        if model_type == 'vit_t':
+            sam_model_registry = mobile_sam.sam_model_registry
+            SamAutomaticMaskGenerator = mobile_sam.SamAutomaticMaskGenerator
+        else:
+            sam_model_registry = segment_anything.sam_model_registry
+            SamAutomaticMaskGenerator = segment_anything.SamAutomaticMaskGenerator
         
         # Load model
         self.model = sam_model_registry[model_type](checkpoint=checkpoint)
         self.model.to(device=device)
-        
+
         # Initialize mask generator
         self.mask_generator = SamAutomaticMaskGenerator(self.model)
-        
+
     def generate_masks(self, image: np.ndarray) -> list[dict]:
         """
         Generates masks of the image.
@@ -58,9 +71,9 @@ class Segmenter:
         Returns:
             list[dict]: A list of dictionaries representing each masked section of the image.
         """
-        
+
         return self.mask_generator.generate(image)
-    
+
     # TODO
     def is_valid_masks(self, masks: list[dict]) -> bool:
         """
@@ -72,9 +85,9 @@ class Segmenter:
         Returns:
             bool: Whether or not masks is a valid list.
         """
-        
+
         return True
-        
+
     def prepare_mask(self, mask: dict, is_bw: bool = False) -> np.ndarray:
         """
         Gets the image array of the mask.
@@ -90,11 +103,11 @@ class Segmenter:
 
         img = np.ones((mask['segmentation'].shape[0], mask['segmentation'].shape[1], 4))
         img[:,:,3] = 0
-        
+
         m = mask['segmentation']
         color_mask = np.concatenate([np.random.random(3), [0.35]])
         img[m] = color_mask
-        
+
         return img
 
     def prepare_masks(self, masks: list[dict], is_bw: bool = False) -> np.ndarray:
@@ -109,21 +122,21 @@ class Segmenter:
         Returns:
             np.ndarray: Image array of the prepared masks.
         """
-        
+
         if len(masks) == 0:
             return
         sorted_masks = sorted(masks, key=(lambda x: x['area']), reverse=True)
 
         img = np.ones((sorted_masks[0]['segmentation'].shape[0], sorted_masks[0]['segmentation'].shape[1], 4))
         img[:,:,3] = 0
-        
+
         for mask in sorted_masks:
             m = mask['segmentation']
             color_mask = np.concatenate([np.random.random(3), [0.35]])
             img[m] = color_mask
-        
+
         return img
-    
+
     def visualize(self, mask_overlay: np.ndarray, image: np.ndarray, figsize: tuple[int] = (15, 5)):
         """
         Visualizes the mask. Overlays it on the image (if any).
@@ -134,9 +147,9 @@ class Segmenter:
             figsize (tuple[int]): Matplotlib figure size.
 
         """
-        
+
         is_bw = len(mask_overlay.shape) == 2
-        
+
         # Display the original image
         plt.figure(figsize=figsize)
         plt.subplot(1, 3, 1)
@@ -171,13 +184,13 @@ class Segmenter:
             ax.imshow(mask_overlay)
             plt.title('Masked Image')
             plt.axis('off')
-        
+
             # Display the mask overlay
             plt.subplot(1, 3, 3)
             plt.imshow(mask_overlay)
             plt.title('Mask Overlay')
             plt.axis('off')
-        
+
         plt.show()
 
     def convert_bw(self, mask_overlay: np.ndarray) -> np.ndarray:
