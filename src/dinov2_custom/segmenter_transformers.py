@@ -1,60 +1,45 @@
-# src/dinov2_custom/segmenter.py
+# src/dinov2_custom/segmenter_transformers.py
 
 import matplotlib.pyplot as plt
 import numpy as np
-import mobile_sam
-import segment_anything
+from transformers import pipeline, SamModel, SamConfig, SamProcessor
 import torch
-from transformers import SamModel, SamConfig, SamProcessor
 
 import os
 
-CHECKPOINTS = {"large" : r"src/dinov2_custom/sam_checkpoints/sam_vit_h_4b8939.pth",
-               "medium": r"src/dinov2_custom/sam_checkpoints/sam_vit_l_0b3195.pth",
-               "small" : r"src/dinov2_custom/sam_checkpoints/sam_vit_b_01ec64.pth",
-               "mobile": r"src/dinov2_custom/sam_checkpoints/mobile_sam.pt"}
+MODEL_TYPES = {"large" : "facebook/sam-vit-huge",
+               "medium": "facebook/sam-vit-large",
+               "small" : "facebook/sam-vit-base"}
 
-MODEL_TYPES = {"large" : "vit_h",
-               "medium": "vit_l",
-               "small" : "vit_b",
-               "mobile": 'vit_t'}
-
-class Segmenter:
+class Segmenter_Transformers:
     """
-    Segmenter class to apply semantic segmentation to images using Meta's Segment Anything Model (SAM).
-
-    Attributes:
-        model (torch.Module): The loaded SAM model for image segmentation.
-        mask_generator (SamAutomaticMaskGenerator): Utility for generating masks from the SAM model.
-        device (str): The computing device used for model operations, e.g., 'cuda' or 'cpu'.
+    Segmenter class to apply semantic segmentation to images using SAM from 
+    transformers module.
     """
 
-    def __init__(self, model_size: str = "mobile", device: str = "cuda"):
+    def __init__(self, checkpoint: str = None, model_size: str = "mobile", device: str = "cuda"):
         """
         Initialize Segmenter model and any utils.
 
         Arguments:
-            model_size (str, "large"): Size of the model, options are 'large', 'medium', 'small', or 'mobile'.
+            model_size (str, "large"): Size of the model, options are 'large', 'medium', 'small' each corresponding to vit_huge, vit_large, vit_base, respectively.
             device (str, "cuda"): Device to run on; options are 'cuda' or 'cpu'.
         """
         
-        checkpoint = CHECKPOINTS[model_size]
-        model_type = MODEL_TYPES[model_size]
-
-        # Determine if using SAM or MobileSAM
-        if model_type == 'vit_t':
-            sam_model_registry = mobile_sam.sam_model_registry
-            SamAutomaticMaskGenerator = mobile_sam.SamAutomaticMaskGenerator
+        device = 0 if device == 'cuda' else -1
+        
+        pre_trained = checkpoint is None
+        
+        if pre_trained:
+            self.mask_generator = pipeline("mask-generation", model=MODEL_TYPES[model_size], device=device)
         else:
-            sam_model_registry = segment_anything.sam_model_registry
-            SamAutomaticMaskGenerator = segment_anything.SamAutomaticMaskGenerator
-        
-        # Load model
-        self.model = sam_model_registry[model_type](checkpoint=checkpoint)
-        self.model.to(device=device)
-        
-        # Initialize mask generator
-        self.mask_generator = SamAutomaticMaskGenerator(self.model)
+            model_config = SamConfig.from_pretrained("facebook/sam-vit-base")
+            model = SamModel(config=model_config)
+            processor = SamProcessor.from_pretrained("facebook/sam-vit-base")
+            
+            model.load_state_dict(torch.load(checkpoint))
+            
+            self.mask_generator = pipeline("mask-generation", model=model, feature_extractor=processor, device=device)
 
     def generate_masks(self, image: np.ndarray) -> list[dict]:
         """
@@ -64,10 +49,10 @@ class Segmenter:
             image (np.ndarray): Image represented in an array.
 
         Returns:
-            list[dict]: A list of dictionaries representing each masked section of the image.
+            dict[str, list]: Masks representing each masked section of the image.
         """
 
-        return self.mask_generator.generate(image)
+        return self.mask_generator(image, points_per_batch=64)
 
     # TODO
     def is_valid_masks(self, masks: list[dict]) -> bool:
@@ -96,10 +81,10 @@ class Segmenter:
             np.ndarray: Image array of the prepared mask.
         """
 
-        img = np.ones((mask['segmentation'].shape[0], mask['segmentation'].shape[1], 4))
+        img = np.ones((mask.shape[0], mask.shape[1], 4))
         img[:,:,3] = 0
 
-        m = mask['segmentation']
+        m = mask
         color_mask = np.concatenate([np.random.random(3), [0.35]])
         img[m] = color_mask
 
@@ -120,13 +105,12 @@ class Segmenter:
 
         if len(masks) == 0:
             return
-        sorted_masks = sorted(masks, key=(lambda x: x['area']), reverse=True)
 
-        img = np.ones((sorted_masks[0]['segmentation'].shape[0], sorted_masks[0]['segmentation'].shape[1], 4))
+        img = np.ones((masks[0].shape[0], masks[0].shape[1], 4))
         img[:,:,3] = 0
 
-        for mask in sorted_masks:
-            m = mask['segmentation']
+        for mask in masks:
+            m = mask
             color_mask = np.concatenate([np.random.random(3), [0.35]])
             img[m] = color_mask
 

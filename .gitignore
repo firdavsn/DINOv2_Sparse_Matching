@@ -1,3 +1,6 @@
-.venv/*
+.venv/**
 *.pth
 *.pt
+src/dinov2_custom/sam_checkpoints/**
+data/**
+misc/**

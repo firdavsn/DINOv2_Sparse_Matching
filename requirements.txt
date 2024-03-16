@@ -12,3 +12,8 @@ ipykernel
 timm
 # torch: pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
 mobile_sam @ git+https://github.com/ChaoningZhang/MobileSAM.git
+transformers
+datasets
+monai
+patchify
+tifffile
