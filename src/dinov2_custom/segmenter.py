@@ -4,8 +4,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import mobile_sam
 import segment_anything
-import torch
-from transformers import SamModel, SamConfig, SamProcessor
+from typing import Tuple as tuple
+from typing import List as list
+from typing import Dict as dict
 
 import os
 

@@ -7,12 +7,15 @@ import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.neighbors import NearestNeighbors
 from scipy.ndimage import binary_closing, binary_opening
+from typing import Tuple as tuple
+from typing import List as list
+from typing import Dict as dict
 
 class Sparse_Matcher:
     def __init__(self):
         pass
     
-    def match_features(self, features1: np.ndarray, features2: np.ndarray) -> (np.ndarray, np.ndarray):
+    def match_features(self, features1: np.ndarray, features2: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         knn = NearestNeighbors(n_neighbors=1)
         knn.fit(features1)
         distances, match2to1 = knn.kneighbors(features2)
