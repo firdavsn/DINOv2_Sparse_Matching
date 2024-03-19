@@ -5,6 +5,9 @@ import numpy as np
 import torch
 import torchvision.transforms as transforms
 from sklearn.decomposition import PCA
+from typing import Tuple as tuple
+from typing import List as list
+from typing import Dict as dict
 
 REPO_NAME = "facebookresearch/dinov2"
 MODEL_NAMES = {"large" : "dinov2_vitg14",
@@ -61,7 +64,7 @@ class DINOv2:
             transforms.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)), # ImageNet defaults
             ])
 
-    def prepare_image(self, rgb_image_numpy: np.ndarray) -> (torch.Tensor, tuple[int], float):
+    def prepare_image(self, rgb_image_numpy: np.ndarray) -> tuple[torch.Tensor, tuple[int], float]:
         """
         Prepares an RGB image for processing by resizing and cropping to fit the model's requirements.
         
@@ -132,7 +135,7 @@ class DINOv2:
         return tokens.cpu().numpy()  # Return the extracted features as a NumPy array
 
 
-    def idx_to_source_position(self, idx: int, grid_size: tuple, resize_scale: float) -> (int, int):
+    def idx_to_source_position(self, idx: int, grid_size: tuple, resize_scale: float) -> tuple[int, int]:
         """
         Converts an index in the flattened feature map back to its original position in the source image.
 

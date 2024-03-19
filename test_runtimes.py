@@ -16,7 +16,7 @@ def resize_image(img_arr: np.ndarray, w: int, h: int) -> np.ndarray:
     img = img.resize((w, h))
     return np.array(img)
 
-def load_model_and_processor(model_path) -> tuple[SamModel, SamProcessor]:
+def load_model_and_processor(model_path):
     # Load the model configuration
     model_config = SamConfig.from_pretrained("facebook/sam-vit-base")
     processor = SamProcessor.from_pretrained("facebook/sam-vit-base")
@@ -49,7 +49,7 @@ def prepare_image(image: np.ndarray, dims: tuple[int, int], verbose=True) -> tor
     
     return patches
 
-def predict(model: SamModel, processor: SamProcessor, device: torch.device, image: torch.Tensor, dims: tuple[int, int], thresh: float = 0.5, verbose=True) -> (torch.Tensor, torch.Tensor):
+def predict(model: SamModel, processor: SamProcessor, device: torch.device, image: torch.Tensor, dims: tuple[int, int], thresh: float = 0.5, verbose=True):
     start_time = time.time()
     model.eval()
     

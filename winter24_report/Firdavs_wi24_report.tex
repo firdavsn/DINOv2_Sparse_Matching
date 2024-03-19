@@ -45,7 +45,7 @@
 
 \section*{Abstract}
 
-In this report, we explore fine-tuning Meta's Segment Anything Model (SAM) for satellite detection in aerial images. SAM is a promptable segmentation system with zero-shot generalization to unfamiliar objects and images. To fine-tune SAM, we first load in a dataset of 1108 train images, 200 validation images and 200 test images where each image is a 512 x 641 grayscale image with a corresponding label that specifies the bounding box surrounding the satellite in view. We then segment each image with all SAM models of different sizes (base, large, huge) as well as MobileSAM (an optimized version of SAM developed for smaller-scale applications). We then iterate through each segmentation for each image and determine if any is within the bounding box for the satellite. With this, we can make a proper dataset for fine-tuning where we have a corresponding segmentation mask for the satellite in the image. This resulted in a final dataset of 411 training images, 102 validation images and 101 test images. In addition, we include another 25 test images without any satellites. Finally, for each image in the train and validation dataset, we resize the image to three difference sizes (512 x 512, 1024 x 1024, 2048 x 2048) and then get 256 x 256 patches of the resized images. We then discard all patches that don't contain any part of the satellite. We then train the SAM model for each resize size and test the model on the test set. We find that the 512 size model gets a test accuracy of 61.9\% with an average runtime of \_ seconds for each image. The 1024 size model gets a test accuracy of 54.0\% with an average runtime of \_ seconds for each image. The 2048 size model gets a test accuracy of \% with an average runtime of \_ seconds for each image. These runtimes are from running on a \_. Based on these results we conclude that the 512 size model is the best model for satellite detection in aerial images.
+In this report, we explore fine-tuning Meta's Segment Anything Model (SAM) for satellite detection in aerial images. SAM is a promptable segmentation system with zero-shot generalization to unfamiliar objects and images. To fine-tune SAM, we first load in a dataset of 1108 train images, 200 validation images and 200 test images where each image is a 512 x 641 grayscale image with a corresponding label that specifies the bounding box surrounding the satellite in view. We then segment each image with all SAM models of different sizes (base, large, huge) as well as MobileSAM (an optimized version of SAM developed for smaller-scale applications). We then iterate through each segmentation for each image and determine if any is within the bounding box for the satellite. With this, we can make a proper dataset for fine-tuning where we have a corresponding segmentation mask for the satellite in the image. This resulted in a final dataset of 411 training images, 102 validation images and 101 test images. In addition, we include another 25 test images without any satellites. Finally, for each image in the train and validation dataset, we resize the image to three difference sizes (512 x 512, 1024 x 1024, 2048 x 2048) and then get 256 x 256 patches of the resized images. We then discard all patches that don't contain any part of the satellite. We then train the SAM model for each resize size and test the model on the test set. We find that the 512 size model gets a test accuracy of 61.9\% with an average runtime of \_ seconds for each image. The 1024 size model gets a test accuracy of 54.0\% with an average runtime of \_ seconds for each image. The 2048 size model gets a test accuracy of 39.7\% with an average runtime of \_ seconds for each image. These runtimes are from running on a \_. Based on these results we conclude that the 512 size model is the best model for satellite detection in aerial images.
 
 \medskip
 
@@ -72,13 +72,24 @@ The final dataset for fine-tuning consisted of 411 training images, 102 validati
 
 For fine-tuning we load in the base SAM model from the transformers library and and only train the mask decoder layer. For each model size, we first train on the training set for 25 epochs with a learning rate of 0.00001 with Dice Cross-Enropy Loss (DiceCELoss) from the monai library. DiceCELoss returns the weighted average of the Dice loss [2] and cross-entropy loss between two input tensors. 
 
-We make a prediction by first resizing the image to the corresponding image size that matches the model. We then split the image into 256 x 256 patches. We run the model on each patch. We then stitch the patches back together to get the final mask. Foe each patch, the model outputs logits for each pixel in the image. We apply a sigmoid to the logits to get probility matrix that has values between 0 and 1 for each pixel that corresponds to the likelihood of the pixel being a part of the satellite. We then threshold the probability matrix at a set value to get the final binary mask. We use the validation set to determine the best threshold value. We found that a threshold of 0.65 resulted in the highest validation accuracy. After, we resize the probabilty and prediction to the original image dimensions. Below is an example of a prediction.
+We make a prediction by first resizing the image to the corresponding image size that matches the model. We then split the image into 256 x 256 patches. We run the model on each patch. We then stitch the patches back together to get the final mask. Foe each patch, the model outputs logits for each pixel in the image. We apply a sigmoid to the logits to get probility matrix that has values between 0 and 1 for each pixel that corresponds to the likelihood of the pixel being a part of the satellite. 
+\begin{align}
+    \text{prob} = \frac{1}{1 + e^{-\text{logits}}}
+\end{align}
+
+We then threshold the probability matrix at a set value to get the final binary mask. We use the validation set to determine the best threshold value. We found that a threshold of 0.65 resulted in the highest validation accuracy. 
+\begin{align}
+    \text{pred} = \text{prob}[\text{prob} > 0.65]
+\end{align}
+After, we resize the probabilty and prediction to the original image dimensions. Below is an example of a prediction.
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=1\textwidth]{figs/pred.png}\\
+    \includegraphics[width=1\textwidth]{figs/pred_512.png}\\
+    \includegraphics[width=1\textwidth]{figs/pred_1024.png}\\
+    \includegraphics[width=1\textwidth]{figs/pred_2048.png}
     \captionsetup{width=.8\linewidth} 
-    \caption{Example of prediction for test image 193 with model size 512.}
+    \caption{Example of prediction for test image 193 with different image/model sizes. Top to bottom: 512, 1024, 2048. From the probability map, we can see the different patches from the slight variation in color at the borders.}
 \end{figure}
 
 For determining the accuracy of the model, we use the joint intersection over union (IoU) metric. The joint IoU is the intersection over union of the predicted mask and the ground truth mask. We test that the joint intersection is over 50\% to mark it as a valid prediction. 
@@ -90,22 +101,30 @@ For determining the accuracy of the model, we use the joint intersection over un
 
 \begin{table}[H]
     \centering
-    \begin{tabular}{ | c | c | c | }
+    \begin{tabular}{ | c | c | c | c | }
         \hline
-        Image/Model Size & Accuracy (\%) & Avg. Time (s) \\ 
+        Image/Model Size & Accuracy (\%) & Time on RTX 4080 Super (s) & Time on Jetson TX2 (s) \\ 
         \hline
-        512 & 61.9 & \\
-        1024 & 54.0 & \\
-        2047 & & \\
+        512 & 61.9 & 0.55 & \\
+        1024 & 54.0 & 2.10 & \\
+        2047 & 39.7 & 8.26 & \\
         \hline
     \end{tabular}
     \captionsetup{width=.8\linewidth} 
-    \caption{Test accuracy and average runtime for each model size. Runtimes are from running on a Jetson TX2}
+    \caption{Test accuracy and average runtime for each model size.}
 \end{table}
 
-\textit{2. MSEPS Application}
+We see that the 512 size model has the highest accuracy and lowest runtime. The high accuracy is likely due to the fact that the model has to process less patches and thus has less chance of predicting a satellite when there isn't one. The low runtime is due to the fact that the model has to process less patches. 
 
-\textit{3. Future Research}
+\textit{2. Future Research}
+To improve model accuracies, there are several things that can be further explored:
+\begin{itemize}
+    \item Get more data. The current dataset is relatively small and more data can help the model generalize better.
+    \item Train on more epochs. The current model was only trained for 25 epochs. Training for more epochs can help the model learn more features. However, this can also lead to overfitting and thus a balance must be struck.
+    \item Fine-tune a larger sized SAM model. The current model was only fine-tuned on the base model.
+    \item Use a different loss function. The current model was trained with DiceCELoss. There are other loss functions that can be explored such as the Generalized Dice Loss [2].
+    \item 
+\end{itemize}
 
 \medskip
 
