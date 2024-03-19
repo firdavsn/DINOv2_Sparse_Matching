@@ -1,0 +1,4 @@
+sam_checkpoints_finetuned/ filter=lfs diff=lfs merge=lfs -text
+sam_checkpoints_finetuned/sam_small_1024.pth filter=lfs diff=lfs merge=lfs -text
+sam_checkpoints_finetuned/sam_small_512.pth filter=lfs diff=lfs merge=lfs -text
+sam_checkpoints_finetuned/sam_small_2048.pth filter=lfs diff=lfs merge=lfs -text

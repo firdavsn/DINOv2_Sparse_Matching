@@ -61,12 +61,21 @@ def get_labels(dir: str) -> dict[int, np.ndarray]:
     
     return labels
 
-# def get_bboxes(labels: dict[str, np.ndarray], linewidth=1, edgecolor='r', facecolor='none') -> dict[int, rect]:
-#     bboxes = {}
-#     for file_path, label in labels.items():
-#         bboxes[file_path] = rect(label[0], label[1][0], label[1][1], linewidth=linewidth, edgecolor=edgecolor, facecolor=facecolor)
+def get_bboxes(dir) -> dict[int, tuple[int, int, int]]:
+    pattern = os.path.join(dir, '*.txt')
+    file_list = glob.glob(pattern)
+    
+    bboxes = {}
+    for file_path in file_list:
+        file_path = file_path.replace('\\', '/')
         
-#     return bboxes
+        file = open(file_path, 'r')
+        content = file.read().split()
+        vals = np.array([eval(x) for x in content])
+
+        bboxes[get_data_num(file_path)] = ((vals[0], vals[1]), vals[2], vals[3])
+    
+    return bboxes
 
 def get_bbox(image:np.ndarray, label: np.ndarray) -> tuple[tuple[int, int], int, int]:
     img_height, img_width, _ = image.shape
