@@ -4,3 +4,10 @@
 src/dinov2_custom/sam_checkpoints/**
 data/**
 misc/**
+venv/**
+.venv2/**
+finetuned_sam_logs/*
+results/*
+winter24_report_data/*
+spring24_report_data/*
+__pycache__/*
